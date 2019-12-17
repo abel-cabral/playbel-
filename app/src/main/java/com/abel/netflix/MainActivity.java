@@ -16,6 +16,8 @@ public class MainActivity extends AppCompatActivity {
     private MediaPlayer mediaPlayer = null;
     private boolean playing = false;
     private int current = 0;
+    private boolean looping = true;
+    private boolean repeat_one = false;
 
     private ArrayList<Integer> playlist;
 
@@ -52,6 +54,27 @@ public class MainActivity extends AppCompatActivity {
         previousMusic();
     }
 
+    public void repeat(View view) {
+        ImageView button = findViewById(R.id.icon_repeat);
+        byte n = (byte) Integer.parseInt(view.getTag().toString());
+        switch (n){
+            case 0:
+                button.setImageResource(R.drawable.aleatorio);
+                view.setTag("1");
+                looping = !looping;
+                break;
+            case 1:
+                repeat_one = !repeat_one;
+                button.setImageResource(R.drawable.repetir_1);
+                view.setTag("0");
+                break;
+            default:
+                looping = repeat_one = false;
+                button.setImageResource(R.drawable.aleatorio);
+                view.setTag("0");
+        }
+    }
+
     private void playMusic(MediaPlayer media) {
         ImageView play = findViewById(R.id.buttonPlay);
         if (playing) {
@@ -61,9 +84,17 @@ public class MainActivity extends AppCompatActivity {
             media.pause();
             play.setImageResource(R.drawable.ic_play_arrow_black_24dp);
         }
-        // Ao fim da musica avança para a proxima
-        media.setOnCompletionListener((res) -> nextMusic());
-    }
+        // Ao fim da musica avança para a proxima ou a repete
+        media.setOnCompletionListener((res) -> {
+            if(repeat_one) {
+                playMusic(media);
+                repeat_one = !repeat_one;
+            } else if(looping) {
+                playMusic(media);
+            }
+            nextMusic();
+    });
+}
 
     private void nextMusic() {
         if (current >= (playlist.size() - 1)) return;
@@ -92,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
+    
 
     // UTILITARIOS
     public MediaPlayer mediaPlayerFactory(ArrayList<Integer> playlist, MediaPlayer now) {
