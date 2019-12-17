@@ -9,6 +9,8 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
+import android.widget.SeekBar;
+import android.widget.TextView;
 
 import java.util.ArrayList;
 
@@ -18,6 +20,8 @@ public class MainActivity extends AppCompatActivity {
     private int current = 0;
     private boolean looping = true;
     private boolean repeat_one = false;
+    private TextView initMusic;
+    private TextView endMusic;
 
     private ArrayList<Integer> playlist;
 
@@ -57,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
     public void repeat(View view) {
         ImageView button = findViewById(R.id.icon_repeat);
         byte n = (byte) Integer.parseInt(view.getTag().toString());
-        switch (n){
+        switch (n) {
             case 0:
                 button.setImageResource(R.drawable.aleatorio);
                 view.setTag("1");
@@ -75,26 +79,37 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // Inicia musica, starta time e progressbar
     private void playMusic(MediaPlayer media) {
         ImageView play = findViewById(R.id.buttonPlay);
+        TextView initMusic = findViewById(R.id.initMusic);
+        TextView endMusic = findViewById(R.id.endMusic);
+        TextView statusMusic = findViewById(R.id.tocandoID);
+
         if (playing) {
             media.start();
+            updateTime(media, initMusic);
+            initMusic.setVisibility(View.VISIBLE);
+            endMusic.setVisibility(View.VISIBLE);
+            statusMusic.setVisibility(View.VISIBLE);
+            endMusic.setText(milliSecondsToTimer(media.getDuration()));
             play.setImageResource(R.drawable.pause);
         } else {
             media.pause();
+            statusMusic.setVisibility(View.INVISIBLE);
             play.setImageResource(R.drawable.ic_play_arrow_black_24dp);
         }
         // Ao fim da musica avança para a proxima ou a repete
         media.setOnCompletionListener((res) -> {
-            if(repeat_one) {
+            if (repeat_one) {
                 playMusic(media);
                 repeat_one = !repeat_one;
-            } else if(looping) {
+            } else if (looping) {
                 playMusic(media);
             }
             nextMusic();
-    });
-}
+        });
+    }
 
     private void nextMusic() {
         if (current >= (playlist.size() - 1)) return;
@@ -123,7 +138,77 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    
+
+    // Progress Bar e Time
+    private void updateTime(MediaPlayer media, TextView textView) {
+        final int i = 1;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+
+                while(media.isPlaying()) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            textView.setText(milliSecondsToTimer((long) media.getCurrentPosition()));
+                        }
+                    });
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
+    }
+
+    private void updateTime(MediaPlayer media, SeekBar seekBar) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(media.isPlaying()) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                        }
+                    });
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+    }
+
+    // Converte Mili para Segundos
+    public String milliSecondsToTimer(long milliseconds) {
+        String finalTimerString = "";
+        String secondsString = "";
+
+        // Convert total duration into time
+        int hours = (int) (milliseconds / (1000 * 60 * 60));
+        int minutes = (int) (milliseconds % (1000 * 60 * 60)) / (1000 * 60);
+        int seconds = (int) ((milliseconds % (1000 * 60 * 60)) % (1000 * 60) / 1000);
+        // Add hours if there
+        if (hours > 0) {
+            finalTimerString = hours + ":";
+        }
+
+        // Prepending 0 to seconds if it is one digit
+        if (seconds < 10) {
+            secondsString = "0" + seconds;
+        } else {
+            secondsString = "" + seconds;
+        }
+
+        finalTimerString = finalTimerString + minutes + ":" + secondsString;
+
+        // return timer string
+        return finalTimerString;
+    }
 
     // UTILITARIOS
     public MediaPlayer mediaPlayerFactory(ArrayList<Integer> playlist, MediaPlayer now) {
