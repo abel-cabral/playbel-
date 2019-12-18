@@ -11,8 +11,10 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
     private MediaPlayer mediaPlayer = null;
@@ -22,7 +24,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean repeat_one = false;
     private TextView initMusic;
     private TextView endMusic;
-
+    private boolean progressBarSystem = false;
     private ArrayList<Integer> playlist;
 
     @Override
@@ -85,10 +87,12 @@ public class MainActivity extends AppCompatActivity {
         TextView initMusic = findViewById(R.id.initMusic);
         TextView endMusic = findViewById(R.id.endMusic);
         TextView statusMusic = findViewById(R.id.tocandoID);
+        SeekBar seekBar = findViewById(R.id.simpleSeekBar);
 
         if (playing) {
             media.start();
             updateTime(media, initMusic);
+            updateTime(media, seekBar);
             initMusic.setVisibility(View.VISIBLE);
             endMusic.setVisibility(View.VISIBLE);
             statusMusic.setVisibility(View.VISIBLE);
@@ -146,7 +150,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
 
-                while(media.isPlaying()) {
+                while (media.isPlaying()) {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -164,13 +168,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateTime(MediaPlayer media, SeekBar seekBar) {
+        // Progresso Seek
         new Thread(new Runnable() {
+            double init;
+            final double end = TimeUnit.MILLISECONDS.toMillis(media.getDuration());
+
+            // Se fizer os Timeinit na mesma linha ocorre um bug com resultado sempre zero
             @Override
             public void run() {
-                while(media.isPlaying()) {
+                while (media.isPlaying()) {
+                    init = TimeUnit.MILLISECONDS.toMillis(media.getCurrentPosition());
+                    if (progressBarSystem) continue;
+
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
+                            progressBarSystem = true;
+                            seekBar.setProgress((int) Math.round((init / end) * 1000));
+                            progressBarSystem = false;
                         }
                     });
                     try {
@@ -180,8 +195,55 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }
-        });
+        }).start();
+
+        // Interacoes com a Seek
+        new Thread(new Runnable() {
+            double init;
+            final double end = TimeUnit.MILLISECONDS.toMillis(media.getDuration());
+            int seekbar;
+
+            // Se fizer os Timeinit na mesma linha ocorre um bug com resultado sempre zero
+            @Override
+            public void run() {
+                while (media.isPlaying()) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+
+                                @Override
+                                public void onProgressChanged(SeekBar seekBar, int progress,
+                                                              boolean fromUser) {
+                                    seekBar.setProgress(progress);
+                                    seekbar = media.getDuration() * progress / 1000;
+                                }
+
+                                @Override
+                                public void onStartTrackingTouch(SeekBar seekBar) {
+                                    playMusic(media);
+                                    progressBarSystem = true;
+                                }
+
+                                @Override
+                                public void onStopTrackingTouch(SeekBar seekBar) {
+                                    media.seekTo(seekbar);
+                                    playMusic(media);
+                                    progressBarSystem = false;
+                                }
+                            });
+                        }
+                    });
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
     }
+
 
     // Converte Mili para Segundos
     public String milliSecondsToTimer(long milliseconds) {
