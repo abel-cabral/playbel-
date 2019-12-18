@@ -2,10 +2,14 @@ package com.abel.netflix;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.ContentResolver;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
@@ -22,10 +26,9 @@ public class MainActivity extends AppCompatActivity {
     private int current = 0;
     private boolean looping = true;
     private boolean repeat_one = false;
-    private TextView initMusic;
-    private TextView endMusic;
     private boolean progressBarSystem = false;
-    private ArrayList<Integer> playlist;
+    private ArrayList<Integer> playlist = new ArrayList<Integer>();
+    private ArrayList<Audio> audioList = new ArrayList<Audio>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,12 +38,15 @@ public class MainActivity extends AppCompatActivity {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_main);
-
-        playlist = new ArrayList<>();
+        loadAudio();
         playlist.add(R.raw.stand_proud);
         playlist.add(R.raw.bloody_stream);
 
         mediaPlayer = mediaPlayerFactory(playlist, mediaPlayer);
+        for(Audio a: audioList) {
+            System.out.println(a.getTitle());
+        }
+
     }
 
     public void play(View view) {
@@ -279,31 +285,30 @@ public class MainActivity extends AppCompatActivity {
         }
         // Instantiating MediaPlayer class
         MediaPlayer facMediaPlayer = MediaPlayer.create(getApplicationContext(), playlist.get(current));
-        facMediaPlayer.setVolume(80, 80);
+        facMediaPlayer.setVolume(100, 100);
 
-        // Subscrible para ouvir mudanças na barra de progresso
-        // simpleSeekBar.setMax(100);
-
-        /*
-        // Adding Listener to value property.
-        progressBar.valueProperty().addListener(new ChangeListener<Number>() {
-            @Override
-            public void changed(ObservableValue<? extends Number> observable,
-                                Number oldValue, Number newValue) {
-
-                if (progressBarSystem) {
-                    return;
-                }
-
-                mediaPlayer.pause();
-                timeScreen.setText(TimeConvert.convertToMinute(timeMusic, "mm:ss"));
-                timeMusic = mediaPlayer.getTotalDuration().toMillis() - mediaPlayer.getCurrentTime().toMillis();
-                mediaPlayer.seek(mediaPlayer.getMedia().getDuration().multiply(progressBar.getValue() / 100));
-            }
-        });
-        */
         return facMediaPlayer;
     }
 
+    private void loadAudio() {
+        ContentResolver contentResolver = getContentResolver();
+
+        Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+        String selection = MediaStore.Audio.Media.IS_MUSIC + "!= 0";
+        String sortOrder = MediaStore.Audio.Media.TITLE + " ASC";
+        Cursor cursor = contentResolver.query(uri, null, selection, null, sortOrder);
+
+        if (cursor != null && cursor.getCount() > 0) {
+            while (cursor.moveToNext()) {
+                String data = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
+                String title = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE));
+                String album = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM));
+                String artist = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST));
+                // Save to audioList
+                audioList.add(new Audio(data, title, album, artist));
+            }
+        }
+        cursor.close();
+    }
 
 }
