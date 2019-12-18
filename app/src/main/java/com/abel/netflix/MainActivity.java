@@ -6,7 +6,10 @@ import android.content.ContentResolver;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -15,8 +18,9 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
@@ -27,7 +31,6 @@ public class MainActivity extends AppCompatActivity {
     private boolean looping = true;
     private boolean repeat_one = false;
     private boolean progressBarSystem = false;
-    private ArrayList<Integer> playlist = new ArrayList<Integer>();
     private ArrayList<Audio> audioList = new ArrayList<Audio>();
 
     @Override
@@ -39,14 +42,7 @@ public class MainActivity extends AppCompatActivity {
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_main);
         loadAudio();
-        playlist.add(R.raw.stand_proud);
-        playlist.add(R.raw.bloody_stream);
-
-        mediaPlayer = mediaPlayerFactory(playlist, mediaPlayer);
-        for(Audio a: audioList) {
-            System.out.println(a.getTitle());
-        }
-
+        mediaPlayer = mediaPlayerFactory(audioList, mediaPlayer);
     }
 
     public void play(View view) {
@@ -122,10 +118,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void nextMusic() {
-        if (current >= (playlist.size() - 1)) return;
+        if (current >= (audioList.size() - 1)) return;
         ImageView button = findViewById(R.id.nextButton);
         current += 1;
-        mediaPlayer = mediaPlayerFactory(playlist, mediaPlayer);
+        System.out.println(current);
+        mediaPlayer = mediaPlayerFactory(audioList, mediaPlayer);
         playMusic(mediaPlayer);
         animationClick(button);
     }
@@ -134,7 +131,7 @@ public class MainActivity extends AppCompatActivity {
         if (current <= 0) return;
         ImageView button = findViewById(R.id.previousButton);
         current -= 1;
-        mediaPlayer = mediaPlayerFactory(playlist, mediaPlayer);
+        mediaPlayer = mediaPlayerFactory(audioList, mediaPlayer);
         playMusic(mediaPlayer);
         animationClick(button);
     }
@@ -279,18 +276,26 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // UTILITARIOS
-    public MediaPlayer mediaPlayerFactory(ArrayList<Integer> playlist, MediaPlayer now) {
-        if (now != null) {
-            now.stop();
+    public final MediaPlayer mediaPlayerFactory(ArrayList<Audio> playlist, MediaPlayer media) {
+        if (media != null) {
+            media.stop();
         }
         // Instantiating MediaPlayer class
-        MediaPlayer facMediaPlayer = MediaPlayer.create(getApplicationContext(), playlist.get(current));
+        MediaPlayer facMediaPlayer = new MediaPlayer();
         facMediaPlayer.setVolume(100, 100);
-
+        facMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+        try {
+            facMediaPlayer.setDataSource(getApplicationContext(), Uri.parse(playlist.get(current).getData()));
+            facMediaPlayer.prepare();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return facMediaPlayer;
     }
 
-    private void loadAudio() {
+
+
+    private final void loadAudio() {
         ContentResolver contentResolver = getContentResolver();
 
         Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
