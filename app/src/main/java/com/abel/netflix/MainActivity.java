@@ -13,6 +13,7 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.text.method.ScrollingMovementMethod;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
@@ -43,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         loadAudio();
         mediaPlayer = mediaPlayerFactory(audioList, mediaPlayer);
+
     }
 
     public void play(View view) {
@@ -90,6 +92,7 @@ public class MainActivity extends AppCompatActivity {
         TextView endMusic = findViewById(R.id.endMusic);
         TextView statusMusic = findViewById(R.id.tocandoID);
         SeekBar seekBar = findViewById(R.id.simpleSeekBar);
+        dadosDeMidia(audioList.get(current), media);
 
         if (playing) {
             media.start();
@@ -277,15 +280,14 @@ public class MainActivity extends AppCompatActivity {
 
     // UTILITARIOS
     public final MediaPlayer mediaPlayerFactory(ArrayList<Audio> playlist, MediaPlayer media) {
-        if (media != null) {
-            media.stop();
-        }
+        if (media != null) media.stop();
+
         // Instantiating MediaPlayer class
         MediaPlayer facMediaPlayer = new MediaPlayer();
         facMediaPlayer.setVolume(100, 100);
         facMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         try {
-            facMediaPlayer.setDataSource(getApplicationContext(), Uri.parse(playlist.get(current).getData()));
+            facMediaPlayer.setDataSource(getApplicationContext(), Uri.parse(playlist.get(current).getData().replaceAll(" ", "%20")));
             facMediaPlayer.prepare();
         } catch (IOException e) {
             e.printStackTrace();
@@ -293,8 +295,13 @@ public class MainActivity extends AppCompatActivity {
         return facMediaPlayer;
     }
 
+    private final void dadosDeMidia(Audio audio, MediaPlayer media){
+        TextView title = findViewById(R.id.titleID);
+        title.setText(audio.getTitle());
+        title.setSelected(true);
+    }
 
-
+    // Busca todos arquivos do tipo especificado no dispositivo, requer permissao
     private final void loadAudio() {
         ContentResolver contentResolver = getContentResolver();
 

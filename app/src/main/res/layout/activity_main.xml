@@ -17,11 +17,19 @@
         app:layout_constraintStart_toStartOf="parent">
 
         <TextView
-            android:id="@+id/textView"
+            android:id="@+id/titleID"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:drawableTop="@drawable/ic_keyboard_arrow_down_black_24dp"
+            android:ellipsize="marquee"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:marqueeRepeatLimit="marquee_forever"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:scrollHorizontally="true"
+            android:singleLine="true"
             android:text="My Demon Souls"
             android:textColor="#F2F2F2"
             android:textSize="24sp"
@@ -40,7 +48,7 @@
             android:visibility="invisible"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/textView" />
+            app:layout_constraintTop_toBottomOf="@+id/titleID" />
 
         <ImageView
             android:id="@+id/imageView6"
@@ -165,7 +173,7 @@
             android:layout_marginRight="32dp"
             android:contentDescription="Botão de favoritar música"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/textView"
+            app:layout_constraintTop_toBottomOf="@+id/titleID"
             app:srcCompat="@drawable/favorito" />
 
         <ImageView
