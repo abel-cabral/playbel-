@@ -4,8 +4,11 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.ContentResolver;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
+import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
@@ -84,6 +87,7 @@ public class MainActivity extends AppCompatActivity {
     // Inicia musica, starta time e progressbar
     private void playMusic(MediaPlayer media) {
         ImageView play = findViewById(R.id.buttonPlay);
+        ImageView cover = findViewById(R.id.coverID);
         TextView initMusic = findViewById(R.id.initMusic);
         TextView endMusic = findViewById(R.id.endMusic);
         TextView statusMusic = findViewById(R.id.tocandoID);
@@ -100,6 +104,7 @@ public class MainActivity extends AppCompatActivity {
             statusMusic.setVisibility(View.VISIBLE);
             endMusic.setText(milliSecondsToTimer(media.getDuration()));
             play.setImageResource(R.drawable.pause);
+            cover.setImageBitmap(audioList.get(current).getCover());
         } else {
             media.pause();
             statusMusic.setVisibility(View.INVISIBLE);
@@ -310,11 +315,15 @@ public class MainActivity extends AppCompatActivity {
                 String title = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE));
                 String album = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM));
                 String artist = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST));
+
+                MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+                mmr.setDataSource(data);
+                byte [] dados = mmr.getEmbeddedPicture();
+                Bitmap bitmap = BitmapFactory.decodeByteArray(dados, 0, dados.length);
                 // Save to audioList
-                audioList.add(new Audio(data, title, album, artist));
+                audioList.add(new Audio(data, title, album, artist, bitmap));
             }
         }
         cursor.close();
     }
-
 }

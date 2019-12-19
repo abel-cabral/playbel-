@@ -1,5 +1,7 @@
 package com.abel.netflix;
 
+import android.graphics.Bitmap;
+
 import java.io.Serializable;
 
 public class Audio implements Serializable {
@@ -8,12 +10,14 @@ public class Audio implements Serializable {
     private String title;
     private String album;
     private String artist;
+    private Bitmap cover;
 
-    public Audio(String data, String title, String album, String artist) {
+    public Audio(String data, String title, String album, String artist, Bitmap cover) {
         this.data = data;
         this.title = title;
         this.album = album;
         this.artist = artist;
+        this.cover = cover;
     }
 
     public String getData() {
@@ -46,5 +50,13 @@ public class Audio implements Serializable {
 
     public void setArtist(String artist) {
         this.artist = artist;
+    }
+
+    public Bitmap getCover() {
+        return cover;
+    }
+
+    public void setCover(Bitmap cover) {
+        this.cover = cover;
     }
 }

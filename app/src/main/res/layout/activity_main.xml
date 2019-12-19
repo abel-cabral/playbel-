@@ -51,7 +51,7 @@
             app:layout_constraintTop_toBottomOf="@+id/titleID" />
 
         <ImageView
-            android:id="@+id/imageView6"
+            android:id="@+id/coverID"
             android:layout_width="0dp"
             android:layout_height="280dp"
             android:layout_marginStart="16dp"
@@ -111,7 +111,7 @@
             android:progress="0"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/imageView6" />
+            app:layout_constraintTop_toBottomOf="@+id/coverID" />
 
         <ImageView
             android:id="@+id/nextButton"
