@@ -22,9 +22,6 @@ import android.widget.TextView;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
@@ -96,8 +93,9 @@ public class MainActivity extends AppCompatActivity {
         TextView statusMusic = findViewById(R.id.tocandoID);
         SeekBar seekBar = findViewById(R.id.simpleSeekBar);
         dadosDeMidia(audioList.get(current), media);
-
-        if (playing) {
+        if(TimeUnit.MILLISECONDS.toMillis(media.getDuration()) < 60000) {
+            nextMusic();
+        } else if (playing) {
             media.start();
             updateTime(media, initMusic);
             updateTime(media, seekBar);
@@ -287,8 +285,7 @@ public class MainActivity extends AppCompatActivity {
         MediaPlayer facMediaPlayer = new MediaPlayer();
         facMediaPlayer.setVolume(100, 100);
         try {
-            Path path = Paths.get("/", playlist.get(current).getData()).normalize();
-            facMediaPlayer.setDataSource(getApplicationContext(), Uri.fromFile(new File(path.toString())));
+            facMediaPlayer.setDataSource(getApplicationContext(), Uri.fromFile(new File(playlist.get(current).getData())));
             facMediaPlayer.prepare();
         } catch (IOException e) {
             e.printStackTrace();
