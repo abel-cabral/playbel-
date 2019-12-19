@@ -22,6 +22,9 @@ import android.widget.TextView;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
@@ -124,7 +127,6 @@ public class MainActivity extends AppCompatActivity {
         if (current >= (audioList.size() - 1)) return;
         ImageView button = findViewById(R.id.nextButton);
         current += 1;
-        System.out.println(current);
         mediaPlayer = mediaPlayerFactory(audioList, mediaPlayer);
         playMusic(mediaPlayer);
         animationClick(button);
@@ -141,7 +143,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void animationClick(ImageView v) {
         if (android.os.Build.VERSION.SDK_INT > 15) {
-            System.out.println("Executado");
             ColorFilter currentColor = v.getColorFilter();
             v.setColorFilter(Color.YELLOW);
             v.setColorFilter(currentColor);
@@ -285,9 +286,9 @@ public class MainActivity extends AppCompatActivity {
         // Instantiating MediaPlayer class
         MediaPlayer facMediaPlayer = new MediaPlayer();
         facMediaPlayer.setVolume(100, 100);
-        facMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         try {
-            facMediaPlayer.setDataSource(getApplicationContext(), Uri.parse(playlist.get(current).getData().replaceAll(" ", "%20")));
+            Path path = Paths.get("/", playlist.get(current).getData()).normalize();
+            facMediaPlayer.setDataSource(getApplicationContext(), Uri.fromFile(new File(path.toString())));
             facMediaPlayer.prepare();
         } catch (IOException e) {
             e.printStackTrace();
