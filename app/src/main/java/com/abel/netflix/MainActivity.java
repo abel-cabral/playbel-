@@ -28,7 +28,8 @@ public class MainActivity extends AppCompatActivity {
     private MediaPlayer mediaPlayer = null;
     private boolean playing = false;
     private int current = 0;
-    private boolean looping = true;
+    private boolean paralells = true;
+    private boolean looping = false;
     private boolean repeat_one = false;
     private boolean progressBarSystem = false;
     private ArrayList<Audio> audioList = new ArrayList<Audio>();
@@ -70,16 +71,18 @@ public class MainActivity extends AppCompatActivity {
             case 0:
                 button.setImageResource(R.drawable.aleatorio);
                 view.setTag("1");
-                looping = !looping;
+                looping = true;
                 break;
             case 1:
-                repeat_one = !repeat_one;
+                repeat_one = true;
+                looping = false;
                 button.setImageResource(R.drawable.repetir_1);
-                view.setTag("0");
+                view.setTag("2");
                 break;
             default:
+                paralells = true;
                 looping = repeat_one = false;
-                button.setImageResource(R.drawable.aleatorio);
+                button.setImageResource(R.drawable.paralelo);
                 view.setTag("0");
         }
     }
@@ -112,13 +115,18 @@ public class MainActivity extends AppCompatActivity {
         }
         // Ao fim da musica avança para a proxima ou a repete
         media.setOnCompletionListener((res) -> {
+            ImageView button = findViewById(R.id.icon_repeat);
             if (repeat_one) {
                 playMusic(media);
-                repeat_one = !repeat_one;
+                paralells = true;
+                looping = repeat_one = false;
+                button.setImageResource(R.drawable.paralelo);
+                button.setTag("0");
             } else if (looping) {
                 playMusic(media);
+            } else {
+                nextMusic();
             }
-            nextMusic();
         });
     }
 
@@ -147,7 +155,6 @@ public class MainActivity extends AppCompatActivity {
             v.setColorFilter(currentColor);
         }
     }
-
 
     // Progress Bar e Time
     private void updateTime(MediaPlayer media, TextView textView) {
@@ -249,7 +256,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }).start();
     }
-
 
     // Converte Mili para Segundos
     public String milliSecondsToTimer(long milliseconds) {

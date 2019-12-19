@@ -188,6 +188,6 @@
             app:layout_constraintBottom_toTopOf="@+id/previousButton"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/initMusic"
-            app:srcCompat="@drawable/aleatorio" />
+            app:srcCompat="@drawable/paralelo" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>
