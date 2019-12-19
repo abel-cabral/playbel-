@@ -30,7 +30,7 @@
             android:paddingRight="20dp"
             android:scrollHorizontally="true"
             android:singleLine="true"
-            android:text="My Demon Souls"
+            android:text="Playbel"
             android:textColor="#F2F2F2"
             android:textSize="24sp"
             app:layout_constraintEnd_toEndOf="parent"
