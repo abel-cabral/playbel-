@@ -1,4 +1,4 @@
-package com.abel.netflix;
+package com.abel.playbel;
 
 import org.junit.Test;
 

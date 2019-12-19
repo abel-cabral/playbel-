@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.abel.netflix">
+    package="com.abel.playbel">
 
     <application
         android:allowBackup="true"
@@ -11,7 +11,7 @@
         android:screenOrientation="portrait"
         android:requestLegacyExternalStorage="true"
         android:theme="@style/AppTheme.NoActionBar">
-        <activity android:name=".MainActivity">
+        <activity android:name="com.abel.playbel.MainActivity">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
