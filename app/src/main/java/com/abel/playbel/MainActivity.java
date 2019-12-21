@@ -5,22 +5,19 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
-import android.content.ContentResolver;
-import android.content.Intent;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
-import android.graphics.drawable.Drawable;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
-import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
@@ -31,6 +28,7 @@ import android.widget.Toast;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
@@ -56,12 +54,22 @@ public class MainActivity extends AppCompatActivity {
 
         if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED) {
-            checkPermission(Manifest.permission.READ_EXTERNAL_STORAGE, 102);
+            checkPermission(Manifest.permission.READ_EXTERNAL_STORAGE, STORAGE_PERMISSION_CODE);
         }
 
         loadAudio();
+
         if (audioList.isEmpty()) {
+            Context context = getApplicationContext();
+            CharSequence text = "Mídias não encontradas";
+            int duration = Toast.LENGTH_SHORT;
+
+            Toast toast = Toast.makeText(context, text, duration);
+            toast.show();
             return;
+        } else {
+            Random rand = new Random();
+            current = rand.nextInt(audioList.size());
         }
         mediaPlayer = mediaPlayerFactory(audioList, mediaPlayer);
 
@@ -93,6 +101,8 @@ public class MainActivity extends AppCompatActivity {
                 button.setImageResource(R.drawable.aleatorio);
                 view.setTag("1");
                 looping = true;
+                Random rand = new Random();
+                current = rand.nextInt(audioList.size());
                 break;
             case 1:
                 repeat_one = true;
@@ -123,12 +133,19 @@ public class MainActivity extends AppCompatActivity {
             media.start();
             updateTime(media, initMusic);
             updateTime(media, seekBar);
+
+            if (audioList.get(current).getCover() == null) {
+                cover.setImageResource(R.drawable.content_pic);
+            } else {
+                cover.setImageBitmap(audioList.get(current).getCover());
+            }
+
             initMusic.setVisibility(View.VISIBLE);
             endMusic.setVisibility(View.VISIBLE);
             statusMusic.setVisibility(View.VISIBLE);
             endMusic.setText(milliSecondsToTimer(media.getDuration()));
             play.setImageResource(R.drawable.pause);
-            cover.setImageBitmap(audioList.get(current).getCover());
+
         } else {
             media.pause();
             statusMusic.setVisibility(View.INVISIBLE);
@@ -144,6 +161,8 @@ public class MainActivity extends AppCompatActivity {
                 button.setImageResource(R.drawable.paralelo);
                 button.setTag("0");
             } else if (looping) {
+                Random rand = new Random();
+                current = rand.nextInt(audioList.size());
                 playMusic(media);
             } else {
                 nextMusic();
@@ -329,60 +348,62 @@ public class MainActivity extends AppCompatActivity {
     // Busca todos arquivos do tipo especificado no dispositivo, requer permissao
     // Cursor obrigatóriamente precisa ser aberto e fechado dentro de try
     private final void loadAudio() {
-        ContentResolver contentResolver;
-        Uri uri;
-        String selection;
-        String sortOrder;
-        Cursor cursor = null;
-
+        String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0";
+        String[] projection = {
+                MediaStore.Audio.Media.ALBUM_ID, //0
+                MediaStore.Audio.Media.ARTIST,  //1
+                MediaStore.Audio.Media.TITLE,   //2
+                MediaStore.Audio.Media.DATA,    //3
+                MediaStore.Audio.Media.ALBUM,    //4
+                MediaStore.Audio.Media.DURATION //5
+        };
         try {
-            contentResolver = getContentResolver();
-            uri = MediaStore.Audio.Media.getContentUri("EXTERNAL_CONTENT_URI");
-            grantUriPermission(null, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            selection = MediaStore.Audio.Media.IS_MUSIC + "!= 0";
-            sortOrder = MediaStore.Audio.Media.TITLE + " ASC";
-            cursor = contentResolver.query(uri, null, selection, null, sortOrder);
+            Cursor cursor = this.managedQuery(
+                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    projection,
+                    selection,
+                    null,
+                    null);
+
+            while (cursor.moveToNext()) {
+                if (android.os.Build.VERSION.SDK_INT > 25) {
+                    audioList.add(new Audio(cursor.getString(3), cursor.getString(2), cursor.getString(4), cursor.getString(1), getCoverArtPath(cursor.getString(3))));
+                } else {
+                    audioList.add(new Audio(cursor.getString(3), cursor.getString(2), cursor.getString(4), cursor.getString(1), null));
+                }
+
+            }
         } catch (Exception e) {
             System.out.println(e.getMessage());
-        } finally {
-            if (cursor != null && cursor.getCount() > 0) {
-                while (cursor.moveToNext()) {
-                    String data = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
-                    String title = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE));
-                    String album = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM));
-                    String artist = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST));
-
-                    MediaMetadataRetriever mmr = new MediaMetadataRetriever();
-                    mmr.setDataSource(data);
-                    byte[] dados = mmr.getEmbeddedPicture();
-                    Bitmap bitmap = BitmapFactory.decodeByteArray(dados, 0, dados.length);
-                    // Save to audioList
-                    audioList.add(new Audio(data, title, album, artist, bitmap));
-                }
-            }
-            try {
-                cursor.close();
-            } catch (Exception e) {
-                System.out.println(e.getMessage());
-            }
         }
     }
 
-    public void checkPermission(String permission, int requestCode)
-    {
+    public void checkPermission(String permission, int requestCode) {
         if (ContextCompat.checkSelfPermission(MainActivity.this, permission)
                 == PackageManager.PERMISSION_DENIED) {
 
             // Requesting the permission
             ActivityCompat.requestPermissions(MainActivity.this,
-                    new String[] { permission },
+                    new String[]{permission},
                     requestCode);
-        }
-        else {
+        } else {
             Toast.makeText(MainActivity.this,
                     "Permission already granted",
                     Toast.LENGTH_SHORT)
                     .show();
         }
+    }
+
+    private Bitmap getCoverArtPath(String path) {
+        Environment.getExternalStorageDirectory();
+        File f = new File(path);
+        Bitmap bitmap = null;
+        if(f.exists()){
+            MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+            mmr.setDataSource(f.getPath());
+            byte [] dados = mmr.getEmbeddedPicture();
+            bitmap = BitmapFactory.decodeByteArray(dados, 0, dados.length);
+        }
+        return bitmap;
     }
 }
