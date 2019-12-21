@@ -1,23 +1,32 @@
 package com.abel.playbel;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
+import android.Manifest;
 import android.content.ContentResolver;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
+import android.graphics.drawable.Drawable;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
     private MediaPlayer mediaPlayer = null;
+    private static final String TAG = "MainActivity";
     private boolean playing = false;
     private int current = 0;
     private boolean paralells = true;
@@ -33,21 +43,32 @@ public class MainActivity extends AppCompatActivity {
     private boolean repeat_one = false;
     private boolean progressBarSystem = false;
     private ArrayList<Audio> audioList = new ArrayList<Audio>();
+    private static final int CAMERA_PERMISSION_CODE = 100;
+    private static final int STORAGE_PERMISSION_CODE = 101;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         // Remove title bar e menu do android
+        setContentView(R.layout.activity_main);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        setContentView(R.layout.activity_main);
+
+        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            checkPermission(Manifest.permission.READ_EXTERNAL_STORAGE, 102);
+        }
+
         loadAudio();
+        if (audioList.isEmpty()) {
+            return;
+        }
         mediaPlayer = mediaPlayerFactory(audioList, mediaPlayer);
 
     }
 
     public void play(View view) {
+        System.out.println(mediaPlayer == null);
         playing = !playing;
         // play music
         if (mediaPlayer != null) {
@@ -96,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
         TextView statusMusic = findViewById(R.id.tocandoID);
         SeekBar seekBar = findViewById(R.id.simpleSeekBar);
         dadosDeMidia(audioList.get(current), media);
-        if(TimeUnit.MILLISECONDS.toMillis(media.getDuration()) < 60000) {
+        if (TimeUnit.MILLISECONDS.toMillis(media.getDuration()) < 60000) {
             nextMusic();
         } else if (playing) {
             media.start();
@@ -290,9 +311,8 @@ public class MainActivity extends AppCompatActivity {
 
         // Instantiating MediaPlayer class
         MediaPlayer facMediaPlayer = new MediaPlayer();
-        facMediaPlayer.setVolume(100, 100);
         try {
-            facMediaPlayer.setDataSource(getApplicationContext(), Uri.fromFile(new File(playlist.get(current).getData())));
+            facMediaPlayer.setDataSource(getApplication(), Uri.fromFile(new File(playlist.get(current).getData())));
             facMediaPlayer.prepare();
         } catch (IOException e) {
             e.printStackTrace();
@@ -300,36 +320,69 @@ public class MainActivity extends AppCompatActivity {
         return facMediaPlayer;
     }
 
-    private final void dadosDeMidia(Audio audio, MediaPlayer media){
+    private final void dadosDeMidia(Audio audio, MediaPlayer media) {
         TextView title = findViewById(R.id.titleID);
         title.setText(audio.getTitle());
         title.setSelected(true);
     }
 
     // Busca todos arquivos do tipo especificado no dispositivo, requer permissao
+    // Cursor obrigatóriamente precisa ser aberto e fechado dentro de try
     private final void loadAudio() {
-        ContentResolver contentResolver = getContentResolver();
+        ContentResolver contentResolver;
+        Uri uri;
+        String selection;
+        String sortOrder;
+        Cursor cursor = null;
 
-        Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-        String selection = MediaStore.Audio.Media.IS_MUSIC + "!= 0";
-        String sortOrder = MediaStore.Audio.Media.TITLE + " ASC";
-        Cursor cursor = contentResolver.query(uri, null, selection, null, sortOrder);
+        try {
+            contentResolver = getContentResolver();
+            uri = MediaStore.Audio.Media.getContentUri("EXTERNAL_CONTENT_URI");
+            grantUriPermission(null, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            selection = MediaStore.Audio.Media.IS_MUSIC + "!= 0";
+            sortOrder = MediaStore.Audio.Media.TITLE + " ASC";
+            cursor = contentResolver.query(uri, null, selection, null, sortOrder);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        } finally {
+            if (cursor != null && cursor.getCount() > 0) {
+                while (cursor.moveToNext()) {
+                    String data = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
+                    String title = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE));
+                    String album = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM));
+                    String artist = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST));
 
-        if (cursor != null && cursor.getCount() > 0) {
-            while (cursor.moveToNext()) {
-                String data = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
-                String title = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE));
-                String album = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM));
-                String artist = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST));
-
-                MediaMetadataRetriever mmr = new MediaMetadataRetriever();
-                mmr.setDataSource(data);
-                byte [] dados = mmr.getEmbeddedPicture();
-                Bitmap bitmap = BitmapFactory.decodeByteArray(dados, 0, dados.length);
-                // Save to audioList
-                audioList.add(new Audio(data, title, album, artist, bitmap));
+                    MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+                    mmr.setDataSource(data);
+                    byte[] dados = mmr.getEmbeddedPicture();
+                    Bitmap bitmap = BitmapFactory.decodeByteArray(dados, 0, dados.length);
+                    // Save to audioList
+                    audioList.add(new Audio(data, title, album, artist, bitmap));
+                }
+            }
+            try {
+                cursor.close();
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
             }
         }
-        cursor.close();
+    }
+
+    public void checkPermission(String permission, int requestCode)
+    {
+        if (ContextCompat.checkSelfPermission(MainActivity.this, permission)
+                == PackageManager.PERMISSION_DENIED) {
+
+            // Requesting the permission
+            ActivityCompat.requestPermissions(MainActivity.this,
+                    new String[] { permission },
+                    requestCode);
+        }
+        else {
+            Toast.makeText(MainActivity.this,
+                    "Permission already granted",
+                    Toast.LENGTH_SHORT)
+                    .show();
+        }
     }
 }
