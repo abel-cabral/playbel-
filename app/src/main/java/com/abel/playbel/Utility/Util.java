@@ -1,27 +1,10 @@
 package com.abel.playbel.Utility;
 
-import android.content.ContentResolver;
-import android.content.ContentUris;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
-import android.net.Uri;
-import android.os.Environment;
-import android.widget.ImageView;
 import android.widget.Toast;
-
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
-import com.abel.playbel.MainActivity;
-import com.abel.playbel.R;
-import com.bumptech.glide.Glide;
-
-import java.io.File;
-import java.io.InputStream;
-
 public class Util {
     public Util() {
     }
@@ -62,5 +45,13 @@ public class Util {
         } else {
             return null;
         }
+    }
+
+    public void showMessage(String message, Context cont) {
+        Context context = cont.getApplicationContext();
+        CharSequence text = message;
+        int duration = Toast.LENGTH_LONG;
+        Toast toast = Toast.makeText(context, text, duration);
+        toast.show();
     }
 }

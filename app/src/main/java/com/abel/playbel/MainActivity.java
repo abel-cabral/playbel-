@@ -5,7 +5,6 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Color;
@@ -14,6 +13,7 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
@@ -32,16 +32,17 @@ import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
     private MediaPlayer mediaPlayer = null;
-    private boolean playing = false;
     private int current = 0;
-    private boolean paralells = true;
-    private boolean looping = false;
-    private boolean repeat_one = false;
-    private boolean progressBarSystem = false;
+    private Util util = new Util();
+    private boolean playing = false,
+            paralells = true,
+            looping = false,
+            repeat_one = false,
+            progressBarSystem = false;
     private ArrayList<Audio> audioList = new ArrayList<Audio>();
-    private static final int CAMERA_PERMISSION_CODE = 100;
-    private static final int STORAGE_PERMISSION_CODE = 101;
-    Util util = new Util();
+    private static final int CAMERA_PERMISSION_CODE = 100,
+            STORAGE_PERMISSION_CODE = 101;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,15 +60,10 @@ public class MainActivity extends AppCompatActivity {
                 break;
             }
         }
-
         loadAudio();
 
         if (audioList.isEmpty()) {
-            Context context = getApplicationContext();
-            CharSequence text = "Mídias não encontradas";
-            int duration = Toast.LENGTH_LONG;
-            Toast toast = Toast.makeText(context, text, duration);
-            toast.show();
+            util.showMessage("Nenhuma mídia encontrada", this);
             return;
         } else {
             Random rand = new Random();
@@ -76,6 +72,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void play(View view) {
+        if (mediaPlayer == null) {
+            mediaPlayerFactory();
+        }
+        // play music
+        playing = !playing;
+        playMusic(mediaPlayer);
+
+    }
+
+    private void play() {
         if (mediaPlayer == null) {
             mediaPlayerFactory();
         }
@@ -367,6 +373,17 @@ public class MainActivity extends AppCompatActivity {
                     Toast.LENGTH_SHORT)
                     .show();
         }
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_HEADSETHOOK) {
+            play();
+            return true;
+        } else if (keyCode == KeyEvent.ACTION_DOWN) {
+            System.out.println("Aumentar volume");
+        }
+        return super.onKeyDown(keyCode, event);
     }
 
 }
