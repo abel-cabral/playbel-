@@ -52,7 +52,7 @@ public class Util {
         return finalTimerString;
     }
 
-    public Bitmap getEmbeddedPicture(String songPath, Context context) {
+    public Bitmap getEmbeddedPicture(String songPath) {
         MediaMetadataRetriever retriever = new MediaMetadataRetriever();
         retriever.setDataSource(songPath);
         byte[] art = retriever.getEmbeddedPicture();

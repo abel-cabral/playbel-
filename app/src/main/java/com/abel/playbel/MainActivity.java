@@ -76,12 +76,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void play(View view) {
-        playing = !playing;
-        mediaPlayerFactory();
-        // play music
-        if (mediaPlayer != null) {
-            playMusic(mediaPlayer);
+        if (mediaPlayer == null) {
+            mediaPlayerFactory();
         }
+        // play music
+        playing = !playing;
+        playMusic(mediaPlayer);
 
     }
 
@@ -120,11 +120,11 @@ public class MainActivity extends AppCompatActivity {
 
     // Inicia musica, starta time e progressbar
     private void playMusic(MediaPlayer media) {
-        ImageView play = findViewById(R.id.buttonPlay);
-        ImageView cover = findViewById(R.id.coverID);
-        TextView initMusic = findViewById(R.id.initMusic);
-        TextView endMusic = findViewById(R.id.endMusic);
-        TextView statusMusic = findViewById(R.id.tocandoID);
+        ImageView play = findViewById(R.id.buttonPlay),
+                cover = findViewById(R.id.coverID);
+        TextView initMusic = findViewById(R.id.initMusic),
+                endMusic = findViewById(R.id.endMusic),
+                statusMusic = findViewById(R.id.tocandoID);
         SeekBar seekBar = findViewById(R.id.simpleSeekBar);
         dadosDeMidia(audioList.get(current), media);
 
@@ -135,7 +135,11 @@ public class MainActivity extends AppCompatActivity {
             updateTime(media, initMusic);
             updateTime(media, seekBar);
 
-            Glide.with(MainActivity.this).load(util.getEmbeddedPicture(audioList.get(current).getData(), MainActivity.this)).into(cover);
+            if (util.getEmbeddedPicture(audioList.get(current).getData()) == null) {
+                Glide.with(MainActivity.this).load(R.drawable.giphy).into(cover);
+            } else {
+                Glide.with(MainActivity.this).load(util.getEmbeddedPicture(audioList.get(current).getData())).into(cover);
+            }
 
             initMusic.setVisibility(View.VISIBLE);
             endMusic.setVisibility(View.VISIBLE);
@@ -172,7 +176,10 @@ public class MainActivity extends AppCompatActivity {
         ImageView button = findViewById(R.id.nextButton);
         current += 1;
         animationClick(button);
+        mediaPlayer.stop();
+        mediaPlayer.reset();
         mediaPlayerFactory();
+        playMusic(mediaPlayer);
     }
 
     private void previousMusic() {
@@ -180,7 +187,10 @@ public class MainActivity extends AppCompatActivity {
         ImageView button = findViewById(R.id.previousButton);
         current -= 1;
         animationClick(button);
+        mediaPlayer.stop();
+        mediaPlayer.reset();
         mediaPlayerFactory();
+        playMusic(mediaPlayer);
     }
 
     private void animationClick(ImageView v) {
@@ -294,22 +304,18 @@ public class MainActivity extends AppCompatActivity {
 
     // UTILITARIOS
     public final void mediaPlayerFactory() {
-        if (mediaPlayer != null) mediaPlayer.stop();
-
-        // Instantiating MediaPlayer class
         mediaPlayer = new MediaPlayer();
         try {
             mediaPlayer.setDataSource(getApplication(), Uri.fromFile(new File(audioList.get(current).getData())));
             mediaPlayer.prepare();
-            mediaPlayer.setOnPreparedListener(this::playMusic);
             mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
                 @Override
                 public void onPrepared(MediaPlayer mp) {
-                    playMusic(mediaPlayer);
+                    playMusic(mp);
                 }
             });
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println(e.getMessage());
         }
     }
 
