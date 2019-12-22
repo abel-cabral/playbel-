@@ -10,14 +10,14 @@ public class Audio implements Serializable {
     private String title;
     private String album;
     private String artist;
-    private Bitmap cover;
+    private String album_ID;
 
-    public Audio(String data, String title, String album, String artist, Bitmap cover) {
+    public Audio(String data, String title, String album, String artist, String album_ID) {
         this.data = data;
         this.title = title;
         this.album = album;
         this.artist = artist;
-        this.cover = cover;
+        this.album_ID = album_ID;
     }
 
     public String getData() {
@@ -52,11 +52,11 @@ public class Audio implements Serializable {
         this.artist = artist;
     }
 
-    public Bitmap getCover() {
-        return cover;
+    public String getAlbum_ID() {
+        return album_ID;
     }
 
-    public void setCover(Bitmap cover) {
-        this.cover = cover;
+    public void setAlbum_ID(String cover) {
+        this.album_ID = album_ID;
     }
 }

@@ -8,15 +8,11 @@ import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
-import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.provider.MediaStore;
 import android.view.View;
 import android.view.WindowManager;
@@ -24,6 +20,9 @@ import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.abel.playbel.Utility.Util;
+import com.bumptech.glide.Glide;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,7 +32,6 @@ import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
     private MediaPlayer mediaPlayer = null;
-    private static final String TAG = "MainActivity";
     private boolean playing = false;
     private int current = 0;
     private boolean paralells = true;
@@ -43,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<Audio> audioList = new ArrayList<Audio>();
     private static final int CAMERA_PERMISSION_CODE = 100;
     private static final int STORAGE_PERMISSION_CODE = 101;
+    Util util = new Util();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,9 +51,13 @@ public class MainActivity extends AppCompatActivity {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-            checkPermission(Manifest.permission.READ_EXTERNAL_STORAGE, STORAGE_PERMISSION_CODE);
+        while (true) {
+            if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                checkPermission(Manifest.permission.READ_EXTERNAL_STORAGE, STORAGE_PERMISSION_CODE);
+            } else {
+                break;
+            }
         }
 
         loadAudio();
@@ -62,8 +65,7 @@ public class MainActivity extends AppCompatActivity {
         if (audioList.isEmpty()) {
             Context context = getApplicationContext();
             CharSequence text = "Mídias não encontradas";
-            int duration = Toast.LENGTH_SHORT;
-
+            int duration = Toast.LENGTH_LONG;
             Toast toast = Toast.makeText(context, text, duration);
             toast.show();
             return;
@@ -71,13 +73,11 @@ public class MainActivity extends AppCompatActivity {
             Random rand = new Random();
             current = rand.nextInt(audioList.size());
         }
-        mediaPlayer = mediaPlayerFactory(audioList, mediaPlayer);
-
     }
 
     public void play(View view) {
-        System.out.println(mediaPlayer == null);
         playing = !playing;
+        mediaPlayerFactory();
         // play music
         if (mediaPlayer != null) {
             playMusic(mediaPlayer);
@@ -127,6 +127,7 @@ public class MainActivity extends AppCompatActivity {
         TextView statusMusic = findViewById(R.id.tocandoID);
         SeekBar seekBar = findViewById(R.id.simpleSeekBar);
         dadosDeMidia(audioList.get(current), media);
+
         if (TimeUnit.MILLISECONDS.toMillis(media.getDuration()) < 60000) {
             nextMusic();
         } else if (playing) {
@@ -134,16 +135,12 @@ public class MainActivity extends AppCompatActivity {
             updateTime(media, initMusic);
             updateTime(media, seekBar);
 
-            if (audioList.get(current).getCover() == null) {
-                cover.setImageResource(R.drawable.content_pic);
-            } else {
-                cover.setImageBitmap(audioList.get(current).getCover());
-            }
+            Glide.with(MainActivity.this).load(util.getEmbeddedPicture(audioList.get(current).getData(), MainActivity.this)).into(cover);
 
             initMusic.setVisibility(View.VISIBLE);
             endMusic.setVisibility(View.VISIBLE);
             statusMusic.setVisibility(View.VISIBLE);
-            endMusic.setText(milliSecondsToTimer(media.getDuration()));
+            endMusic.setText(util.milliSecondsToTimer(media.getDuration()));
             play.setImageResource(R.drawable.pause);
 
         } else {
@@ -174,18 +171,16 @@ public class MainActivity extends AppCompatActivity {
         if (current >= (audioList.size() - 1)) return;
         ImageView button = findViewById(R.id.nextButton);
         current += 1;
-        mediaPlayer = mediaPlayerFactory(audioList, mediaPlayer);
-        playMusic(mediaPlayer);
         animationClick(button);
+        mediaPlayerFactory();
     }
 
     private void previousMusic() {
         if (current <= 0) return;
         ImageView button = findViewById(R.id.previousButton);
         current -= 1;
-        mediaPlayer = mediaPlayerFactory(audioList, mediaPlayer);
-        playMusic(mediaPlayer);
         animationClick(button);
+        mediaPlayerFactory();
     }
 
     private void animationClick(ImageView v) {
@@ -207,7 +202,7 @@ public class MainActivity extends AppCompatActivity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            textView.setText(milliSecondsToTimer((long) media.getCurrentPosition()));
+                            textView.setText(util.milliSecondsToTimer((long) media.getCurrentPosition()));
                         }
                     });
                     try {
@@ -297,46 +292,25 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
-    // Converte Mili para Segundos
-    public String milliSecondsToTimer(long milliseconds) {
-        String finalTimerString = "";
-        String secondsString = "";
-
-        // Convert total duration into time
-        int hours = (int) (milliseconds / (1000 * 60 * 60));
-        int minutes = (int) (milliseconds % (1000 * 60 * 60)) / (1000 * 60);
-        int seconds = (int) ((milliseconds % (1000 * 60 * 60)) % (1000 * 60) / 1000);
-        // Add hours if there
-        if (hours > 0) {
-            finalTimerString = hours + ":";
-        }
-
-        // Prepending 0 to seconds if it is one digit
-        if (seconds < 10) {
-            secondsString = "0" + seconds;
-        } else {
-            secondsString = "" + seconds;
-        }
-
-        finalTimerString = finalTimerString + minutes + ":" + secondsString;
-
-        // return timer string
-        return finalTimerString;
-    }
-
     // UTILITARIOS
-    public final MediaPlayer mediaPlayerFactory(ArrayList<Audio> playlist, MediaPlayer media) {
-        if (media != null) media.stop();
+    public final void mediaPlayerFactory() {
+        if (mediaPlayer != null) mediaPlayer.stop();
 
         // Instantiating MediaPlayer class
-        MediaPlayer facMediaPlayer = new MediaPlayer();
+        mediaPlayer = new MediaPlayer();
         try {
-            facMediaPlayer.setDataSource(getApplication(), Uri.fromFile(new File(playlist.get(current).getData())));
-            facMediaPlayer.prepare();
+            mediaPlayer.setDataSource(getApplication(), Uri.fromFile(new File(audioList.get(current).getData())));
+            mediaPlayer.prepare();
+            mediaPlayer.setOnPreparedListener(this::playMusic);
+            mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                @Override
+                public void onPrepared(MediaPlayer mp) {
+                    playMusic(mediaPlayer);
+                }
+            });
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return facMediaPlayer;
     }
 
     private final void dadosDeMidia(Audio audio, MediaPlayer media) {
@@ -366,12 +340,7 @@ public class MainActivity extends AppCompatActivity {
                     null);
 
             while (cursor.moveToNext()) {
-                if (android.os.Build.VERSION.SDK_INT > 25) {
-                    audioList.add(new Audio(cursor.getString(3), cursor.getString(2), cursor.getString(4), cursor.getString(1), getCoverArtPath(cursor.getString(3))));
-                } else {
-                    audioList.add(new Audio(cursor.getString(3), cursor.getString(2), cursor.getString(4), cursor.getString(1), null));
-                }
-
+                audioList.add(new Audio(cursor.getString(3), cursor.getString(2), cursor.getString(4), cursor.getString(1), cursor.getString(0)));
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -394,16 +363,4 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private Bitmap getCoverArtPath(String path) {
-        Environment.getExternalStorageDirectory();
-        File f = new File(path);
-        Bitmap bitmap = null;
-        if(f.exists()){
-            MediaMetadataRetriever mmr = new MediaMetadataRetriever();
-            mmr.setDataSource(f.getPath());
-            byte [] dados = mmr.getEmbeddedPicture();
-            bitmap = BitmapFactory.decodeByteArray(dados, 0, dados.length);
-        }
-        return bitmap;
-    }
 }
