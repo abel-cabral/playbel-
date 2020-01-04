@@ -60,7 +60,17 @@ public class MainActivity extends AppCompatActivity {
                 break;
             }
         }
-        loadAudio();
+
+        Thread threadA = loadAudio();
+        threadA.start();
+
+        synchronized (threadA) {
+            try {
+                threadA.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
 
         if (audioList.isEmpty()) {
             util.showMessage("Nenhuma mídia encontrada", this);
@@ -73,7 +83,15 @@ public class MainActivity extends AppCompatActivity {
 
     public void play(View view) {
         if (mediaPlayer == null) {
-            mediaPlayerFactory();
+            Thread threadB = mediaPlayerFactory();
+            threadB.start();
+            synchronized (threadB) {
+                try {
+                    threadB.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
         }
         // play music
         playing = !playing;
@@ -83,7 +101,15 @@ public class MainActivity extends AppCompatActivity {
 
     private void play() {
         if (mediaPlayer == null) {
-            mediaPlayerFactory();
+            Thread threadB = mediaPlayerFactory();
+            threadB.start();
+            synchronized (threadB) {
+                try {
+                    threadB.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
         }
         // play music
         playing = !playing;
@@ -134,7 +160,7 @@ public class MainActivity extends AppCompatActivity {
         SeekBar seekBar = findViewById(R.id.simpleSeekBar);
         dadosDeMidia(audioList.get(current), media);
 
-        if (TimeUnit.MILLISECONDS.toMillis(media.getDuration()) < 60000) {
+        if (TimeUnit.MILLISECONDS.toMillis(media.getDuration()) < 30000) {
             nextMusic();
         } else if (playing) {
             media.start();
@@ -181,10 +207,15 @@ public class MainActivity extends AppCompatActivity {
         if (current >= (audioList.size() - 1)) return;
         ImageView button = findViewById(R.id.nextButton);
         current += 1;
-        animationClick(button);
-        mediaPlayer.stop();
-        mediaPlayer.reset();
-        mediaPlayerFactory();
+        Thread threadB = mediaPlayerFactory();
+        threadB.start();
+        synchronized (threadB) {
+            try {
+                threadB.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
         playMusic(mediaPlayer);
     }
 
@@ -192,10 +223,15 @@ public class MainActivity extends AppCompatActivity {
         if (current <= 0) return;
         ImageView button = findViewById(R.id.previousButton);
         current -= 1;
-        animationClick(button);
-        mediaPlayer.stop();
-        mediaPlayer.reset();
-        mediaPlayerFactory();
+        Thread threadB = mediaPlayerFactory();
+        threadB.start();
+        synchronized (threadB) {
+            try {
+                threadB.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
         playMusic(mediaPlayer);
     }
 
@@ -309,20 +345,35 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // UTILITARIOS
-    public final void mediaPlayerFactory() {
-        mediaPlayer = new MediaPlayer();
-        try {
-            mediaPlayer.setDataSource(getApplication(), Uri.fromFile(new File(audioList.get(current).getData())));
-            mediaPlayer.prepare();
-            mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-                @Override
-                public void onPrepared(MediaPlayer mp) {
-                    playMusic(mp);
+    public final synchronized Thread mediaPlayerFactory() {
+        return new Thread(new Runnable() {
+            @Override
+            public void run() {
+                synchronized (this) {
+                    if (mediaPlayer != null) {
+                        mediaPlayer.stop();
+                    }
+
+                    mediaPlayer = new MediaPlayer();
+
+                    try {
+                        mediaPlayer.setDataSource(getApplication(), Uri.fromFile(new File(audioList.get(current).getData())));
+                        mediaPlayer.prepare();
+                        mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                            @Override
+                            public void onPrepared(MediaPlayer mp) {
+                                playMusic(mp);
+                            }
+                        });
+                    } catch (IOException e) {
+                        System.out.println(e.getMessage());
+                    }
+                    notify();
                 }
-            });
-        } catch (IOException e) {
-            System.out.println(e.getMessage());
-        }
+            }
+
+            ;
+        });
     }
 
     private final void dadosDeMidia(Audio audio, MediaPlayer media) {
@@ -333,30 +384,38 @@ public class MainActivity extends AppCompatActivity {
 
     // Busca todos arquivos do tipo especificado no dispositivo, requer permissao
     // Cursor obrigatóriamente precisa ser aberto e fechado dentro de try
-    private final void loadAudio() {
-        String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0";
-        String[] projection = {
-                MediaStore.Audio.Media.ALBUM_ID, //0
-                MediaStore.Audio.Media.ARTIST,  //1
-                MediaStore.Audio.Media.TITLE,   //2
-                MediaStore.Audio.Media.DATA,    //3
-                MediaStore.Audio.Media.ALBUM,    //4
-                MediaStore.Audio.Media.DURATION //5
-        };
-        try {
-            Cursor cursor = this.managedQuery(
-                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                    projection,
-                    selection,
-                    null,
-                    null);
+    private final synchronized Thread loadAudio() {
+        return new Thread(new Runnable() {
+            @Override
+            public void run() {
+                synchronized (this) {
+                    String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0";
+                    String[] projection = {
+                            MediaStore.Audio.Media.ALBUM_ID, //0
+                            MediaStore.Audio.Media.ARTIST,  //1
+                            MediaStore.Audio.Media.TITLE,   //2
+                            MediaStore.Audio.Media.DATA,    //3
+                            MediaStore.Audio.Media.ALBUM,    //4
+                            MediaStore.Audio.Media.DURATION //5
+                    };
+                    try {
+                        Cursor cursor = getContentResolver().query(
+                                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                                projection,
+                                selection,
+                                null,
+                                null);
 
-            while (cursor.moveToNext()) {
-                audioList.add(new Audio(cursor.getString(3), cursor.getString(2), cursor.getString(4), cursor.getString(1), cursor.getString(0)));
+                        while (cursor.moveToNext()) {
+                            audioList.add(new Audio(cursor.getString(3), cursor.getString(2), cursor.getString(4), cursor.getString(1), cursor.getString(0)));
+                        }
+                    } catch (Exception e) {
+                        System.out.println(e.getMessage());
+                    }
+                    notify();
+                }
             }
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
+        });
     }
 
     public void checkPermission(String permission, int requestCode) {
